@@ -1,0 +1,444 @@
+<!doctype>
+<html>
+	<head>
+        <title>Partition</title>
+        <script type="text/javascript" src="http://www.jasondavies.com/d3.min.js"></script>
+        <script type="text/javascript">
+			var partition = function(canvas, width, height){
+				var width = Math.max(width | 0, 300),
+					height = Math.max(height | 0, 150);
+				var canvas = canvas,
+					context = canvas.getContext("2d"),
+					data;
+				var radius = 100;
+				var ratio = window.devicePixelRatio || 1;
+				canvas.width = width * ratio;
+				canvas.height = height * ratio;
+				canvas.style.width = width;
+				canvas.style.height = height;
+				context.scale(ratio, ratio);
+				context.translate(width / 2, height / 2);
+				var p = d3.layout.partition().sort(null).value(function(d){ return 5 - d.depth});
+				function partition(){
+
+				}
+				partition.data = function(d){
+					data = d;
+					return partition;
+				};
+				partition.draw = function(){
+					draw();
+				};
+				//
+				var x = d3.scale.linear().range([0, 2 * Math.PI]),
+					y = d3.scale.pow().exponent(1.3).domain([0, 1]).range([0, radius]);
+				var arc = d3.svg.arc()
+					.startAngle(function(d){ return Math.max(0, Math.min(2 * Math.PI, x(d.x)))})
+					.endAngle(function(d){ return Math.max(0, Math.min(2 * Math.PI, x(d.x + d.dx)))})
+					.innerRadius(function(d){ return Math.max(0, d.y ? y(d.y) : d.y)})
+					.outerRadius(function(d){ return Math.max(0, y(d.y + d.dy))});
+				var vis = d3.select("body").append("svg").attr({width: width, height: height});
+				function draw(){
+					var nodes = p.nodes({children: data});
+					vis.selectAll("path").data(nodes).enter().append("path").attr({
+						d: arc,
+						fill: function(d){
+							console.log(d);
+							if(d.children){
+								return d.children[0].colour;
+							}
+							return d.colour;
+						},
+						transform: "matrix(1, 0, 0, 1, 100, 100)"
+					});
+				}
+				return partition;
+			};
+        	document.addEventListener("DOMContentLoaded", function(){
+        		var data = [
+  {
+    "name": "Aromas",
+    "children": [
+      {
+        "name": "Enzymatic",
+        "children": [
+          {
+            "name": "Flowery",
+            "children": [
+              {
+                "name": "Floral",
+                "children": [
+                  {
+                    "name": "Coffee Blossom", "colour": "#f9f0ab"
+                  },
+                  {
+                    "name": "Tea Rose", "colour": "#e8e596"
+                  }
+                ]
+              },
+              {
+                "name": "Fragrant",
+                "children": [
+                  {
+                    "name": "Cardamon Caraway", "colour": "#f0e2a3"
+                  },
+                  {
+                    "name": "Coriander Seeds", "colour": "#ede487"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Fruity",
+            "children": [
+              {
+                "name": "Citrus",
+                "children": [
+                  {
+                    "name": "Lemon", "colour": "#efd580"
+                  },
+                  {
+                    "name": "Apple", "colour": "#f1cb82"
+                  }
+                ]
+              },
+              {
+                "name": "Berry-like",
+                "children": [
+                  {
+                    "name": "Apricot", "colour": "#f1c298"
+                  },
+                  {
+                    "name": "Blackberry", "colour": "#e8b598"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Herby",
+            "children": [
+              {
+                "name": "Alliaceous",
+                "children": [
+                  {
+                    "name": "Onion", "colour": "#d5dda1"
+                  },
+                  {
+                    "name": "Garlic", "colour": "#c9d2b5"
+                  }
+                ]
+              },
+              {
+                "name": "Leguminous",
+                "children": [
+                  {
+                    "name": "Cucumber", "colour": "#aec1ad"
+                  },
+                  {
+                    "name": "Garden Peas", "colour": "#a7b8a8"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Sugar Browning",
+        "children": [
+          {
+            "name": "Nutty",
+            "children": [
+              {
+                "name": "Nut-like",
+                "children": [
+                  {
+                    "name": "Roasted Peanuts", "colour": "#b49a3d"
+                  },
+                  {
+                    "name": "Walnuts", "colour": "#b28647"
+                  }
+                ]
+              },
+              {
+                "name": "Malt-like",
+                "children": [
+                  {
+                    "name": "Balsamic Rice", "colour": "#a97d32"
+                  },
+                  {
+                    "name": "Toast", "colour": "#b68334"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Carmelly",
+            "children": [
+              {
+                "name": "Candy-like",
+                "children": [
+                  {
+                    "name": "Roasted Hazelnut", "colour": "#d6a680"
+                  },
+                  {
+                    "name": "Roasted Almond", "colour": "#dfad70"
+                  }
+                ]
+              },
+              {
+                "name": "Syrup-like",
+                "children": [
+                  {
+                    "name": "Honey", "colour": "#a2765d"
+                  },
+                  {
+                    "name": "Maple Syrup", "colour": "#9f6652"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Chocolatey",
+            "children": [
+              {
+                "name": "Chocolate-like",
+                "children": [
+                  {
+                    "name": "Bakers", "colour": "#b9763f"
+                  },
+                  {
+                    "name": "Dark Chocolate", "colour": "#bf6e5d"
+                  }
+                ]
+              },
+              {
+                "name": "Vanilla-like",
+                "children": [
+                  {
+                    "name": "Swiss", "colour": "#af643c"
+                  },
+                  {
+                    "name": "Butter", "colour": "#9b4c3f"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Dry Distillation",
+        "children": [
+          {
+            "name": "Resinous",
+            "children": [
+              {
+                "name": "Turpeny",
+                "children": [
+                  {
+                    "name": "Piney", "colour": "#72659d"
+                  },
+                  {
+                    "name": "Blackcurrant-like", "colour": "#8a6e9e"
+                  }
+                ]
+              },
+              {
+                "name": "Medicinal",
+                "children": [
+                  {
+                    "name": "Camphoric", "colour": "#8f5c85"
+                  },
+                  {
+                    "name": "Cineolic", "colour": "#934b8b"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Spicy",
+            "children": [
+              {
+                "name": "Warming",
+                "children": [
+                  {
+                    "name": "Cedar", "colour": "#9d4e87"
+                  },
+                  {
+                    "name": "Pepper", "colour": "#92538c"
+                  }
+                ]
+              },
+              {
+                "name": "Pungent",
+                "children": [
+                  {
+                    "name": "Clove", "colour": "#8b6397"
+                  },
+                  {
+                    "name": "Thyme", "colour": "#716084"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Carbony",
+            "children": [
+              {
+                "name": "Smokey",
+                "children": [
+                  {
+                    "name": "Tarry", "colour": "#2e6093"
+                  },
+                  {
+                    "name": "Pipe Tobacco", "colour": "#3a5988"
+                  }
+                ]
+              },
+              {
+                "name": "Ashy",
+                "children": [
+                  {
+                    "name": "Burnt", "colour": "#4a5072"
+                  },
+                  {
+                    "name": "Charred", "colour": "#393e64"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Tastes",
+    "children": [
+      {
+        "name": "Bitter",
+        "children": [
+          {
+            "name": "Pungent",
+            "children": [
+              {
+                "name": "Creosol", "colour": "#aaa1cc"
+              },
+              {
+                "name": "Phenolic", "colour": "#e0b5c9"
+              }
+            ]
+          },
+          {
+            "name": "Harsh",
+            "children": [
+              {
+                "name": "Caustic", "colour": "#e098b0"
+              },
+              {
+                "name": "Alkaline", "colour": "#ee82a2"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Salt",
+        "children": [
+          {
+            "name": "Sharp",
+            "children": [
+              {
+                "name": "Astringent", "colour": "#ef91ac"
+              },
+              {
+                "name": "Rough", "colour": "#eda994"
+              }
+            ]
+          },
+          {
+            "name": "Bland",
+            "children": [
+              {
+                "name": "Neutral", "colour": "#eeb798"
+              },
+              {
+                "name": "Soft", "colour": "#ecc099"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Sweet",
+        "children": [
+          {
+            "name": "Mellow",
+            "children": [
+              {
+                "name": "Delicate", "colour": "#f6d5aa"
+              },
+              {
+                "name": "Mild", "colour": "#f0d48a"
+              }
+            ]
+          },
+          {
+            "name": "Acidy",
+            "children": [
+              {
+                "name": "Nippy", "colour": "#efd95f"
+              },
+              {
+                "name": "Piquant", "colour": "#eee469"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Sour",
+        "children": [
+          {
+            "name": "Winey",
+            "children": [
+              {
+                "name": "Tangy", "colour": "#dbdc7f"
+              },
+              {
+                "name": "Tart", "colour": "#dfd961"
+              }
+            ]
+          },
+          {
+            "name": "Soury",
+            "children": [
+              {
+                "name": "Hard", "colour": "#ebe378"
+              },
+              {
+                "name": "Acrid", "colour": "#f5e351"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+];
+        		var canvas = document.getElementById("vis");
+        		partition(canvas, canvas.width, canvas.height).data(data).draw();
+        	});
+        </script>
+	</head>
+	<body>
+		<canvas id="vis" width="960" height="450"></canvas>
+	</body>
+</html>
