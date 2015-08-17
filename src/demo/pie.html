@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Pie</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			onload = function(){
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+
+				;(canvas.layout = canvas.layout || {}).arc = function(){
+					var innerRadius = function(d){ return d.innerRadius; },
+						outerRadius = function(d){ return d.outerRadius; },
+						startAngle = function(d){ return d.startAngle; },
+						endAngle = function(d){ return d.endAngle; };
+					var offset = -Math.PI / 2,
+						max = 2 * Math.PI - 1e-6;
+					function functor(v){
+						return typeof v === "function" ? v : function(){ return v; };
+					}
+
+					function arc(){
+						//console.log(innerRadius, innerRadius.apply(this, arguments), this)
+						var context = this;
+						var r0 = innerRadius.apply(this, arguments),
+							r1 = outerRadius.apply(this, arguments);
+						var a0 = startAngle.apply(this, arguments) + offset,
+							a1 = endAngle.apply(this, arguments) + offset;
+						var da = (a1 < a0 && (da = a0, a0 = a1, a1 = da), a1 - a0);
+						var x = isNaN(arguments[0]) ? r1 : arguments[0],
+							y = isNaN(arguments[1]) ? r1 : arguments[0];
+						console.log(a0, a1);
+						//if(da >= max){
+							context.beginPath();
+							context.arc(x, y, r1, a0, a1, false);
+							context.arc(x, y, r0, a1, a0, true);
+							context.closePath();
+							function dount(x, y, innerRadius, outerRadius, startAngle, endAngle, color){
+								context.beginPath();
+								context.arc(x, y, outerRadius, startAngle, endAngle, false);
+								context.arc(x, y, innerRadius, endAngle, startAngle, true);
+								context.closePath();
+							}
+						//}
+						//context.fill();
+						//context.stroke();
+					}
+					arc.innerRadius = function(v){
+						if(!arguments.length)
+							return innerRadius;
+						innerRadius = functor(v);
+						return arc;
+					};
+					arc.outerRadius = function(v){
+						if(!arguments.length)
+							return outerRadius;
+						outerRadius = functor(v);
+						return arc;
+					};
+					arc.startAngle = function(v){
+						if(!arguments.length)
+							return startAngle;
+						startAngle = functor(v);
+						return arc;
+					};
+					arc.endAngle = function(v){
+						if(!arguments.length)
+							return endAngle;
+						endAngle = functor(v);
+						return arc;
+					};
+					return arc;
+				};
+				var pie = function(canvas, width, height){
+					var width = Math.max(width | 0, 300),
+						height = Math.max(height | 0, 150);
+					var canvas = canvas,
+						context = canvas.getContext("2d");
+					//context.translate(200, 80);
+					//if(window.devicePixelRatio){
+						var ratio = window.devicePixelRatio || 1;
+						canvas.width = width * ratio;
+						canvas.height = height * ratio;
+						canvas.style.width = width + "px";
+						canvas.style.height = height + "px";
+						context.scale(ratio, ratio);
+					//}
+					function pie(){
+
+					}
+					pie.data = function(d){
+						return pie;
+					};
+					pie.draw = function(){
+						draw();
+						bind();
+					};
+					pie.redraw = function(){
+						this.clear();
+						//this.draw();
+						draw();
+					};
+					pie.clear = function(){
+						context.clearRect(0, 0, width, height);
+					}
+					function toSum(data){
+						var l = data.length & 1,
+							r = data.length,
+							sum = data[0] * l;
+						while(l < r) sum += data[l++] + data[--r];
+						return sum;
+					}
+					function toAngle(data){
+						var angles = [],
+							angle = 0;
+						var sum = toSum(data);
+
+						for(var i = 0; i < data.length; i++){
+							var startAngle = angle,
+								endAngle = 0;
+							var percent = data[i] / sum;
+							angle += percent * 2 * Math.PI;
+							endAngle = angle;
+							angles.push({
+								startAngle: startAngle,
+								endAngle: endAngle,
+								data: data[i],
+								percent: percent,
+								index: i
+							});
+						}
+						return angles;
+					}
+					var rotationAngle = -Math.PI / 2;
+					function sectorAngle(r, p){
+						var startAngle = r.startAngle,
+							endAngle = r.endAngle;
+						startAngle = rotationAngle + startAngle * p;
+						endAngle = rotationAngle + endAngle * p;
+						return {
+							startAngle: startAngle,
+							endAngle: endAngle
+						};
+					}
+					//draw
+					var cx = 100, cy = 100;
+					var radius = 100;
+					var isRing = true;
+					var angles = toAngle(data);
+					var currentIndex = -1;
+					function draw(){
+						function sector(r, p){
+							var angle = sectorAngle(r, p),
+								index = r.index;
+							var fillColor = ["#ccc", "blue", "green"][index] || "#000";
+							function dount(x, y, innerRadius, outerRadius, startAngle, endAngle, color){
+								context.beginPath();
+								context.arc(x, y, outerRadius, startAngle, endAngle, false);
+								context.arc(x, y, innerRadius, endAngle, startAngle, true);
+								context.closePath();
+							}
+							/*isRing ? dount(cx, cy, radius * 0.4, radius, angle.startAngle, angle.endAngle)
+								: (context.beginPath(),
+									context.arc(cx, cy, radius, angle.startAngle, angle.endAngle, false),
+									context.lineTo(cx, cy),
+									context.closePath());*/
+							var x = cx,
+								y = cy;
+							if(index === currentIndex){
+								var middleAngle = rotationAngle + (r.startAngle + r.endAngle) / 2;
+								x += Math.cos(middleAngle) * 10,
+								y += Math.sin(middleAngle) * 10;
+							}
+							//console.log(index,"----", currentIndex, x, y);
+							//console.log(x, y, angle.startAngle, angle.endAngle)
+							dount(x, y, radius * 0.4, radius, angle.startAngle, angle.endAngle)
+
+							/*canvas.layout.arc()
+								.innerRadius(isRing ? (radius * 0.4) : 0)
+								.outerRadius(radius)
+								.startAngle(angle.startAngle)
+								.endAngle(angle.endAngle).call(context, x, y);*/
+							context.strokeStyle = "#fff";
+							context.fillStyle = fillColor;
+							context.stroke();
+							context.fill();
+							//text
+							drawText(x, y, radius, angle.startAngle, angle.endAngle, r);
+						}
+						
+						for(var i = 0; i < angles.length; i++){
+							sector(angles[i], 1);
+						}
+					}
+					function drawText(x, y, radius, startAngle, endAngle, data){
+						var middleAngle = (startAngle + endAngle) / 2,
+							r = radius / 2;
+						if(isRing){
+							r = radius / 2 + radius * 0.4 / 2;
+						}
+						context.fillStyle = "#000"
+						context.fillText(data.percent.toFixed(2), x + r * Math.cos(middleAngle), y + r * Math.sin(middleAngle));
+					}
+					//bind event
+					function inSegment(mx, my){
+						var x = mx - cx,
+							y = my - cy;
+						//圆点距离
+						var distance = Math.sqrt(x * x + y * y);
+						var inPie = distance <= radius;
+						if(inPie && isRing)
+							inPie = distance >= radius * 0.4;
+						if(!inPie)
+							return;
+						var ca = Math.atan2(y, x) - rotationAngle;
+						
+						if(ca < 0)
+							ca += 2 * Math.PI;
+						if(ca > 2 * Math.PI)
+							ca -= 2 * Math.PI;
+						console.log(ca, x, y)
+						//console.log(ca);
+						for(var i = 0; i < angles.length; i++){
+							if(ca >= angles[i].startAngle && ca < angles[i].endAngle){
+								var a = angles[i];
+								break;
+							}
+						}
+						return a;
+					}
+					function bind(){
+						var getOffset = function(el){
+							var box = el.getBoundingClientRect(), 
+								doc = el.ownerDocument, 
+								body = doc.body, 
+								html = doc.documentElement, 
+								clientTop = html.clientTop || body.clientTop || 0, 
+								clientLeft = html.clientLeft || body.clientLeft || 0, 
+								top = box.top + (self.pageYOffset || html.scrollTop || body.scrollTop ) - clientTop, 
+								left = box.left + (self.pageXOffset || html.scrollLeft || body.scrollLeft) - clientLeft;
+							return {"top": top, "left": left };
+						}
+						canvas.addEventListener("click", function(e){
+							var offset = getOffset(canvas);
+							var x = e.pageX - offset.left,
+								y = e.pageY - offset.top;
+							var angle = inSegment(x, y);
+							if(angle){
+								currentIndex = angle.index;
+								pie.redraw();
+							}
+						});
+					}
+					return pie;
+				};
+				
+				var data = [10, 28/*, 39, 8*/];
+
+				pie(canvas, canvas.width, canvas.height).data(data).draw();
+			};
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="650" height="450"></canvas>
+	</body>
+</html>

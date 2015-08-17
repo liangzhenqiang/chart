@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Spline</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			onload = function(){
+				function rescale(canvas, context, width, height){
+					var ratio = window.devicePixelRatio || 1;
+					canvas.width = width * ratio;
+					canvas.height = height * ratio;
+					canvas.style.width = width + "px";
+					canvas.style.height = height + "px";
+					context.scale(ratio, ratio);
+				}
+				
+				var spline = function(canvas, width, height){
+					var width = Math.max(width | 0, 300),
+						height = Math.max(height | 0, 150);
+					var canvas = canvas,
+						context = canvas.getContext("2d");
+					rescale(canvas, context, width, height);
+
+					var series = [];
+					var pointRanges = [];
+
+					function spline(){
+
+					}
+					spline.data = function(d){
+						series = d;
+						//this.series = [];
+						var min = 0,
+							max = 0;
+						return spline;
+					};
+					spline.draw = function(){
+						draw();
+						bind();
+					};
+					spline.redraw = function(){
+						this.clear();
+						draw();
+					};
+					spline.clear = function(){
+						context.clearRect(0, 0, width, height);
+					};
+					//draw
+					var config = {
+						chart: {
+							width: width,
+							height: height,
+							margin: {
+								left: 80,
+								right: 50,
+								bottom: 10,
+								top: 10
+							},
+							lineColor: ["#a6d854", "#72caed", "#95A5A6"],
+							fillColor: ["#F38630", "#E0E4CC", "#a6d854"]
+						}
+					};
+					var isSpline = true;
+					function interpolate(range, domain, value){
+						var r0 = range[0],
+							r1 = range[1],
+							d0 = domain[0],
+							d1 = domain[1];//maxValue - minValue
+						var dd = d1 - d0 ? 1 / (d1 - d0) : 0;
+						return r0 + (r1 - r0) * ((value - d0) * dd);
+					}
+					function toX(i, length){
+						var xAxisLength = width,
+							xstep = Math.floor(xAxisLength / (length - 1)) - 50;
+						var step = (config.chart.width - config.chart.margin.left - config.chart.margin.right) / (length - 1);
+						return config.chart.margin.left + step * i;
+					}
+					function toY(j, value){
+						var min = Math.min.apply(Math, value),
+							max = Math.max.apply(Math, value);
+						return interpolate([config.chart.height - config.chart.margin.top, config.chart.margin.bottom], [min, max], value[j] || 0);
+					}
+					function toPoint(p, i){
+						var cx = 0.25,
+							cy = 0.25;
+						var last = p.length - 1;
+						var x1, y1, x2, y2;
+						if(p.length > 3){
+							x1 = p[last].x - (p[last].x - p[last - 1].x) * cx;
+							y1 = p[last].y - (p[last].y - p[last - 1].y) * cy;
+						}
+						else{
+							x2 = p[i + 1].x - (p[i + 2].x - p[i].x) * cx;
+							y2 = p[i + 1].y - (p[i + 2].y - p[i].y) * cy;
+						}
+						x1 = (p[i + 1].x + p[i + 2].x) / 2;
+						y1 = (p[i + 1].y + p[i + 2].y) / 2;
+						var x3 = (p[i + 2].x * 2 + p[i + 3].x) / 3,
+							y3 = (p[i + 2].y * 2 + p[i + 3].y) / 3;
+						x2 = (x1 + x3) / 2;
+						y2 = (y1 + y3) / 2;
+						return {
+							x1: x1,
+							y1: y1,
+							x2: x2,
+							y2: y2,
+							x3: x3,
+							y3: y3
+						};
+					}
+					//draw
+					function chartArea(){
+						context.fillStyle = "#eee";
+						context.fillRect(0, 0, config.chart.width, config.chart.height);
+					}
+					function splineCurve(data, index){
+						var length = data.length;
+						context.beginPath();
+						for(var i = 0; i < length; i++){
+							var d = data[i];
+							var pointX = toX(i, length),
+								pointY = toY(i, data);
+							//context.strokeStyle = ["blue", "red", "green"][Math.random() * 3 | 0] || "#ccc";
+							if(isSpline){//贝塞尔曲线
+								if(!i)
+									context.moveTo(config.chart.margin.left, toY(i, data));
+								else{
+									context.bezierCurveTo(
+										toX(i - 0.5, length),
+										toY(i - 1, data),
+										toX(i - 0.5, length),
+										pointY,
+										pointX,
+										pointY
+									);
+								}
+							}else{
+								context.lineTo(pointX, pointY);
+							}
+							pointRanges.push({
+								x: pointX,
+								y: pointY,
+								j: i,
+								index: index,
+								value: d
+							});
+						}
+						context.lineWidth = 2;
+						context.stroke();
+						context.lineTo((config.chart.width / (length - 1)) * (length - 1) - config.chart.margin.right, config.chart.height - config.chart.margin.bottom);
+						context.lineTo(config.chart.margin.left, config.chart.height - config.chart.margin.bottom);
+						context.lineTo(config.chart.margin.left, toY(0, data))
+						context.fillStyle = config.chart.fillColor[index] || "rgba(29, 189, 67, 0.2)";
+						context.fill();
+						drawPoint(data);
+					}
+					function drawPoint(data){
+						var length = data.length;
+						for(var i = 0; i < length; i++){
+							var x = toX(i, length),
+								y = toY(i, data);
+							context.fillStyle = "#000";
+							context.fillText(data[i], x, y - 3);
+							context.beginPath();
+							context.arc(x,y, 5, 0, 2 * Math.PI, false);
+							context.stroke();
+							context.fillStyle = "green";
+							context.fill();
+						}
+					}
+					function inPointRange(x, y, ranges){
+						var bounds = 20,
+						    p;
+						for(var i = 0; i < ranges.length; i++){
+						    var r = ranges[i];
+						    if(x >= r.x - bounds && x <= r.x + bounds &&
+						      y >= r.y - bounds && y <= r.y + bounds){
+						        p = r;
+						        break;
+						    }
+						}
+						return p;
+					}
+					function draw(){
+						chartArea();
+						for(var i = 0; i < series.length; i++)
+							splineCurve(series[i].data, i);
+					}
+					function bind(){
+						context.canvas.addEventListener("click", function(e){
+						    var point = inPointRange(e.clientX, e.clientY, pointRanges);
+						    if(point){
+						        console.log(point, point.y, point.j);
+						    }
+						}, 0);
+					}
+					return spline;
+				}
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				var series = [{
+					name: "JAVA",
+					data: [65,0,90,81,56,55,40,20,13,20,11,60,65,59,90,81,56,55,40,20,11,20,10,60,11,60,65]
+				}],
+				data = [];
+				for(var i = 0; i < 30; i++) data.push(+Math.random().toFixed(2));
+				series.push({name: "PHP", data: data});
+
+				spline(canvas, canvas.width, canvas.height).data(series).draw();
+
+
+				//--------
+				
+			};
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="650" height="250"></canvas>
+		<canvas id="vis2" width="650" height="250" style="position:absolute; right:0; top:0;"></canvas>
+	</body>
+</html>
