@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Radar</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			onload = function(){
+				function rescale(context, width, height){
+					var ratio = window.devicePixelRatio || 1;
+					context.canvas.width = width * ratio;
+					context.canvas.height = height * ratio;
+					context.canvas.style.width = width + "px";
+					context.canvas.style.height = height + "px";
+					context.scale(ratio, ratio);
+				}
+				
+				var radar = function(canvas, width, height){
+					var width = Math.max(width | 0, 300),
+						height = Math.max(height | 0, 150);
+					var canvas = canvas,
+						context = canvas.getContext("2d");
+					rescale(context, width, height);
+
+					var series = [];
+					var pointRanges = [];
+
+					function radar(){
+
+					}
+					radar.data = function(d){
+						series = d;
+						//this.series = [];
+						return radar;
+					};
+					radar.draw = function(){
+						draw();
+						bind();
+					};
+					radar.redraw = function(){
+						this.clear();
+						draw();
+					};
+					radar.clear = function(){
+						context.clearRect(0, 0, width, height);
+					};
+					//draw
+					var config = {
+						chart: {
+							width: width,
+							height: height,
+							radius: 180,
+							margin: {
+								left: 80,
+								right: 50,
+								bottom: 10,
+								top: 10
+							},
+							lineColor: ["#a6d854", "#72caed", "#95A5A6"],
+							fillColor: ["#F38630", "#a6d854", "#E0E4CC"]
+						}
+					};
+					var GRID_SHAPE = "diamond";
+					//draw
+					function chartArea(){
+						context.fillStyle = "#eee";
+						context.fillRect(0, 0, config.chart.width, config.chart.height);
+					}
+					function renderToRadar(data, index){
+						var length = data.length;
+						var angle = 2 * Math.PI / length,//计算每条数据的角度
+							size = config.chart.radius,
+							step = 50,
+							gridWidth = size / step | 0;
+						context.save();
+						context.translate(config.chart.width / 2, config.chart.height / 2);
+						context.fillStyle = "#000";
+						//分割线
+						for(var i = 0; i < length; i++){
+							var w = size - size % step;
+							context.rotate(angle);
+							context.moveTo(0, 0);
+							context.lineTo(0, -w);
+						}
+						context.stroke();
+						//刻度
+						for(var i = 0; i < gridWidth; i++){
+							var radius = step * (i + 1);
+							//context.strokeStyle = ""
+							context.beginPath();
+							if(GRID_SHAPE == "diamond"){
+								context.moveTo(0, -radius);
+								for(var j = 0; j < length; j++){
+									context.rotate(angle);
+									context.lineTo(0, -radius);
+								}
+							}
+							else{
+								context.arc(0, 0, radius, 0, 2 * Math.PI, true);
+							}
+							context.closePath();
+							context.stroke();
+							context.fillText(i, 0, -radius);
+						}
+						context.restore();
+						// xAxis label
+						//drawxAxis(data, index);
+						drawArea(data, index);
+					}
+					function drawxAxis(data){
+						var length = data.length,
+							fontSize = 14,
+							radius = config.chart.radius + fontSize;
+
+						for(var i = 0; i < length; i++){
+							var angle = 2 * Math.PI * i / length;
+							var x = radius * Math.cos(angle),
+								y = radius * Math.sin(angle);
+							var align = "left";
+							if(angle === Math.PI || angle === 0)
+								align = "center";
+							else if(angle > Math.PI);
+								align = "right";
+							context.fillText(data[i], x, -y);
+							context.textAlign = align;
+						}
+					}
+        			function toStep(value, scale, top){
+        				var sv = scale.stepValue * scale.step,
+        					dv = (value - scale.start) / sv;
+        				var factor = dv;
+        				if(dv > 1)
+        					factor = 1;
+        				if(dv < 0)
+        					factor = 0;
+        				return top * scale.step * factor;
+        			}
+        			function toY(value){
+        				return -1 * toStep(value, {
+        					step: 10,
+        					stepValue: 10,
+        					start: 0
+        				}, config.chart.radius / 15);
+        			}
+					function drawArea(data, index){
+						var length = data.length,
+							angle = 2 * Math.PI / length;
+						context.fillStyle = "rgba(23, 211, 9, 0.5)";
+						context.save();
+						context.beginPath();
+						context.translate(config.chart.width / 2, config.chart.height / 2);
+
+						context.moveTo(0, toY(data[0]));
+						for(var i = 0; i < length; i++){
+							var y = toY(data[i]);
+							if(i === 0)
+								continue;
+							context.rotate(angle);
+							context.lineTo(0, y);
+						}
+						context.closePath();
+						context.stroke();
+						context.fill();//config.chart.fillColor[index] || "rgba(23, 211, 9, 0.5)";
+						//context.rotate(angle);
+						//context.restore();
+						context.fillStyle = config.chart.fillColor[index];
+
+						for(i = 0; i < length; i++){
+							var y = toY(data[i]),
+								p = getPosition(y, angle, i);
+							context.rotate(angle);
+							context.beginPath();
+							context.arc(0, y, 5, 0, 2 * Math.PI);
+							context.fillText(data[i], 0, y - 5);
+							context.stroke();
+							context.fill();
+							pointRanges.push({
+								x: p.x,
+								y: p.y,
+								index: i,
+								value: data[i],
+								j: index
+							});
+						}
+						context.restore();
+					}
+					function getPosition(y, angle, i){
+						var angle = -Math.PI / 2 + i * angle,
+							r = Math.abs(y);
+						return {
+							x: r * Math.cos(angle) + config.chart.width / 2,
+							y: r * Math.sin(angle) + config.chart.height / 2
+						};
+					}
+					function inPointRange(x, y, ranges){
+						var bounds = 20,
+						    p;
+						for(var i = 0; i < ranges.length; i++){
+						    var r = ranges[i];
+						    if(x >= r.x - bounds && x <= r.x + bounds &&
+						      y >= r.y - bounds && y <= r.y + bounds){
+						        p = r;
+						        break;
+						    }
+						}
+						return p;
+					}
+					function draw(){
+						chartArea();
+						renderToRadar(series[0].data, 0);
+						for(var i = 0; i < series.length; i++)
+							drawArea(series[i].data, i);
+					}
+					function bind(){
+						context.canvas.addEventListener("click", function(e){
+						    var point = inPointRange(e.clientX, e.clientY, pointRanges);
+						    if(point){
+						        console.log(point, point.y, point.j);
+						    }
+						}, 0);
+					}
+					return radar;
+				}
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				var series = [{
+					name: "JAVA",
+					data: [90,50,60,71,54]
+				}],
+				data = [];
+				for(var i = 0; i < 10; i++) data.push(+(Math.random() * 100).toFixed(2));
+				series.push({name: "PHP", data: data});
+
+				radar(canvas, canvas.width, canvas.height).data(series).draw();
+			};
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="650" height="450"></canvas>
+	</body>
+</html>
