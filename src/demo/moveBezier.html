@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Bezier控制点</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			onload = function(){
+				function rescale(context, width, height){
+					var ratio = window.devicePixelRatio || 1;
+					context.canvas.width = width * ratio;
+					context.canvas.height = height * ratio;
+					context.canvas.style.width = width + "px";
+					context.canvas.style.height = height + "px";
+					context.scale(ratio, ratio);
+				}
+
+				
+				var bezier = function(canvas, width, height){
+					var width = Math.max(width | 0, 300),
+						height = Math.max(height | 0, 150);
+					var canvas = canvas,
+						context = canvas.getContext("2d");
+					var config = {
+						chart: {
+							width: width,
+							height: height,
+							radius: 180,
+							margin: {
+								left: 80,
+								right: 50,
+								bottom: 10,
+								top: 10
+							},
+							lineColor: ["#a6d854", "#72caed", "#95A5A6"],
+							fillColor: ["#F38630", "#a6d854", "#E0E4CC"]
+						}
+					};
+					//rescale(context, width, height);
+
+					var series = [];
+					var endPoint = [
+						{x: 110, y: 120},
+						{x: 300, y: 280}
+					];
+					var controlPoint = [
+						{x: 150, y: 180},
+						{x: 190, y: 130}
+					];
+					var canvas = context.canvas;
+					var cx = width / 2,
+						cy = height / 2;
+					var imageData;
+					var dragging = false;
+					var currentIndex = -1,
+						currentControlPoint,
+						currentEndPoint;
+
+					var round = function(a){ return a + 0.5; }
+					function moveTo(canvas, x, y){
+						var box = canvas.getBoundingClientRect();
+						//console.log(box, width, height);
+						return {
+							x: (x - box.left) * (width / box.width),
+							y: (y - box.top) * (height / box.height)
+						};
+					}
+
+					function bezier(){
+
+					}
+					bezier.data = function(d){
+						series = d;
+						return bezier;
+					};
+					bezier.draw = function(){
+						draw();
+					};
+					bezier.redraw = function(){
+						this.clear();
+						draw();
+					};
+					bezier.clear = function(){
+						context.clearRect(0, 0, width, height);
+					};
+					function saveImage(){
+						imageData = context.getImageData(0, 0, width, height);
+					}
+					function restoreImage(){
+						context.putImageDate(imageData, 0, 0);
+					}
+					function drawBezier(controlPoint, endPoint){
+						context.beginPath();
+						context.moveTo(endPoint[0].x, endPoint[0].y);
+						context.bezierCurveTo(
+							controlPoint[0].x,
+							controlPoint[0].y,
+							controlPoint[1].x,
+							controlPoint[1].y,
+							endPoint[1].x,
+							endPoint[1].y);
+						context.stroke();
+					}
+					function inEndPoint(x, y){
+						var p;
+						context.save();
+						for(var i = 0; i < endPoint.length; i++){
+							context.beginPath();
+							context.arc(endPoint[i].x, endPoint[i].y, 5, 0, 2 * Math.PI, false);
+							if(context.isPointInPath(x, y)){
+								p = endPoint[currentIndex = i];
+							}
+							context.fill();
+						}
+						context.restore();
+						return p;
+					}
+					function inControlPoint(x, y){
+						var p;
+						context.save();
+						for(var i = 0; i < controlPoint.length; i++){
+							context.beginPath();
+							context.arc(controlPoint[i].x, controlPoint[i].y, 5, 0, 2 * Math.PI, false);
+							if(context.isPointInPath(x, y)){
+								p = controlPoint[i];
+								currentIndex = i;
+								context.fillStyle = "red";
+								//break;
+							}
+							else{
+								context.fillStyle = "#000";
+							}
+							context.fill();
+						}
+						context.restore();
+						return p;
+					}
+					//draw
+					function draw(){
+						bezier.clear();
+						drawBezier(controlPoint, endPoint);
+						inEndPoint(-100, -100);
+						inControlPoint(-100, -100);
+					}
+					//bind mouse move
+					canvas.onmousedown = function(e){
+						var box = moveTo(this, e.clientX, e.clientY);
+						bezier.clear();
+						drawBezier(controlPoint, endPoint);
+						currentEndPoint = inEndPoint(box.x, box.y);
+						currentControlPoint = inControlPoint(box.x, box.y);
+
+						if(currentControlPoint || currentEndPoint){
+							dragging = true;
+						}
+					};
+					canvas.onmousemove = function(e){
+						var box = moveTo(this, e.clientX, e.clientY);
+						if(dragging){
+							if(!!~currentIndex){
+								if(currentEndPoint){
+									endPoint[currentIndex].x = box.x;
+									endPoint[currentIndex].y = box.y;
+								}
+								if(currentControlPoint){
+									controlPoint[currentIndex].x = box.x;
+									controlPoint[currentIndex].y = box.y;
+								}
+								draw();
+							}
+						}
+					};
+					canvas.onmouseup = function(){
+						//canvas.onmousemove = null;
+						//canvas.onmousedown = null;
+						draw();
+						dragging = false;
+					};
+					return bezier;
+				}
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				var series = [/*{
+					name: "JAVA",
+					data: [1.8, 2.3, 8.2, 1.7, 4.5, 8.2, 1.7, 4.5],
+					color: "#F38630"
+				}*/];
+
+				bezier(canvas, canvas.width, canvas.height).data(series).draw();
+			};
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="650" height="450"></canvas>
+	</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Polygon</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			onload = function(){
+				function rescale(context, width, height){
+					var ratio = window.devicePixelRatio || 1;
+					context.canvas.width = width * ratio;
+					context.canvas.height = height * ratio;
+					context.canvas.style.width = width + "px";
+					context.canvas.style.height = height + "px";
+					context.scale(ratio, ratio);
+				}
+
+				(function(){
+					var moveTo = CanvasRenderingContext2D.prototype.moveTo;
+					CanvasRenderingContext2D.prototype.lastMoveTo = {};
+					CanvasRenderingContext2D.prototype.moveTo = function(x, y){
+					    moveTo.apply(context, [x, y]);
+					    this.lastMoveTo.x = x;
+					    this.lastMoveTo.y = y;
+					};
+					CanvasRenderingContext2D.prototype.dashedLineTo = function(x, y, dashLength){
+					    dashLength = (typeof dashLength === "undefined" || isNaN(dashLength)) ? 5 : dashLength;
+					    var startX = this.lastMoveTo.x,
+					        startY = this.lastMoveTo.y,
+					        deltaX = x - startX,
+					        deltaY = y - startY;
+					    var distance = ~~(Math.sqrt(deltaX * deltaX + deltaY * deltaY) / dashLength);
+					    for(var i = 0; i < distance; i++){
+					        this[i % 2 ? "lineTo" : "moveTo"](
+					            startX + i * (deltaX / distance),
+					            startY + i * (deltaY / distance)
+					        );
+					    }
+					    this.moveTo(x, y);
+					};
+				})();
+				function Polygon(x, y, radius, startAngle, count){
+					this.x = x;
+					this.y = y;
+					this.radius = radius;
+					this.points = [];
+					this.startAngle = startAngle || 0;
+					this.length = count || 6;
+					this.init();
+				}
+				Polygon.prototype = {
+					init: function(){
+					    var angle = this.startAngle,
+					        length = this.length;
+					    for(var i = 0; i < length; i++){
+					        this.points.push({
+					            x: this.x + this.radius * Math.cos(angle),
+					            y: this.y + this.radius * Math.sin(angle)
+					        });
+					        angle += 2 * Math.PI / length;
+					    }
+					},
+					path: function(context){
+					    var points = this.points;
+					    context.beginPath();
+					    context.moveTo(points[0].x, points[0].y);
+					    for(var i = 1; i < points.length; i++){
+					        //context.lineTo(points[i].x, points[i].y);
+					        context.dashedLineTo(points[i].x, points[i].y);
+					    }
+					    context.dashedLineTo(points[0].x, points[0].y, 2);
+					    context.closePath();
+					    context.stroke();
+					},
+					fill: function(){ },
+					move: function(x, y){
+					    this.x = x;
+					    this.y = y;
+					}
+				};
+				var canvas = document.getElementById("vis"),
+				context = canvas.getContext("2d");
+				new Polygon(canvas.width / 2, canvas.height / 2, 100).path(context);
+			};
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="650" height="450"></canvas>
+	</body>
+</html>
