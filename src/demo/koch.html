@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Koch</title>
+		<script type="text/javascript">
+			onload = function(){
+				function curve(x, y, size, alpha, n){
+					var PI = Math.PI / 180;
+					if(n > 0){
+						size = size / Math.sqrt(2);
+						curve(x, y, size, alpha + 45, n - 1);
+						x = x + size * Math.cos((alpha + 45) * PI);
+						y = y + size * Math.sin((alpha + 45) * PI);
+						curve(x, y, size, alpha - 45, n - 1);
+					}
+					else{
+						context.moveTo(x, y);
+						context.lineTo(x + size * Math.cos(alpha * p), y + size * Math.sin(alpha * p));
+						context.stroke();
+					}
+				}
+				function koch(x, y, size, alpha, n){
+					var PI = Math.PI / 180;
+					if(n > 0){
+						size /= 3;
+						koch(x, y, size, alpha, n - 1);
+						x = x + size * Math.cos(alpha * PI);
+						y = y + size * Math.sin(alpha * PI);
+						koch(x, y, size, alpha - 60, n - 1);
+
+						x = x + size * Math.cos((alpha - 60) * PI);
+						y = y + size * Math.sin((alpha - 60) * PI);
+						koch(x, y, size, alpha + 60, n - 1);
+
+						x = x + size * Math.cos((alpha + 60) * PI);
+						y = y + size * Math.sin((alpha + 60) * PI);
+						koch(x, y, size, alpha, n - 1);
+					}
+					else{
+						context.moveTo(x, y);
+						context.lineTo(x + size * Math.cos(alpha * PI), y + size * Math.sin(alpha * PI));
+						context.stroke();
+					}
+				}
+				function gasket(x1, y1, x2, y2, x3, y3, n){
+					if(n > 0){
+						var x12 = (x1 + x2) / 2,
+							y12 = (y1 + y2) / 2;
+						var x13 = (x1 + x3) / 2,
+							y13 = (y1 + y3) / 2;
+						var x23 = (x2 + x3) / 2,
+							y23 = (y2 + y3) / 2;
+						gasket(x1, y1, x12, y12, x13, y13, n - 1);
+						gasket(x12, y12, x2, y2, x23, y23, n - 1);
+						gasket(x13, y13, x23, y23, x3, y3, n - 1);
+					}
+					else{
+						context.moveTo(x1, y1);
+						context.lineTo(x1, y1);
+						context.lineTo(x2, y2);
+						context.lineTo(x3, y3);
+						context.stroke();
+					}
+				}
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				gasket(190, 190, -190, -190, 190, -190, 6);
+			};
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="960" height="450"></canvas>
+	</body>
+</html>

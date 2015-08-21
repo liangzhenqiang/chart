@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Funnel</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			function rescale(context, width, height){
+				var ratio = window.devicePixelRatio || 1;
+				context.canvas.width = width * ratio;
+				context.canvas.height = height * ratio;
+				context.canvas.style.width = width + "px";
+				context.canvas.style.height = height + "px";
+				context.scale(ratio, ratio);
+			}
+
+			var funnel = function(canvas, width, height){
+				var width = Math.max(width | 0, 300),
+					height = Math.max(height | 0, 150);
+				var canvas = canvas,
+					context = canvas.getContext("2d");
+
+				var cx = 40,
+					cy = 80;
+				var data;
+				rescale(context, width, height);
+				function funnel(){
+
+				}
+				funnel.data = function(d){
+					data = d;
+					return funnel;
+				};
+				funnel.draw = function(){
+					draw();
+				};
+				funnel.redraw = function(){
+					this.draw();
+				};
+				//
+				function sum(data){
+					var left = data.length & 1,
+						right = data.length,
+						sum = data[left][1];
+					while(left < right)
+						sum += data[left++][1] + data[--right][1];
+					return sum;
+				}
+				var config = {
+					dynamicArea: false,//动态计算area
+					bottomPinch: 0,//最后一个rect
+					isInverted: false,//排序
+					isCurved: true
+				};
+				function draw(){
+					var total = sum(data);
+					width = 300;
+					height = 350;
+
+					var prevLeftX = 0,
+						nextLeftX = 0,
+						prevRightX = width,
+						nextRigthtX = 0,
+						prevHeight = 0,
+						nextHeight = 0;
+					
+					var bottomWidth = width * (1 / 2),
+						bottomLeftX = (width - bottomWidth) / 2,
+						curveHeight = 20,
+						topBase = width;
+
+					cx = config.bottomPinch > 0
+						? bottomLeftX / (data.length - config.bottomPinch)
+						: bottomLeftX / data.length;
+					cy = config.isCurved
+						? (height - curveHeight) / data.length
+						: height / data.length;
+
+					if(config.isInverted){
+						prevLeftX = bottomLeftX;
+						prevRightX = width - bottomLeftX;
+					}
+					if(config.isCurved)
+						prevHeight = 10;
+
+					var paths = [];
+					for(var i = 0; i < data.length; i++){
+						var value = data[i][1];
+						if(config.dynamicArea){
+							var totalArea = height * (width + bottomWidth) / 2,
+								slope = 2 * height / (width - bottomWidth);
+							var ratio = value / total,
+								area = ratio * totalArea,
+								bottomBase = Math.sqrt((slope * topBase * topBase - (4 * area)) / slope);
+							cx = topBase / 2 - bottomBase / 2;
+							cy = area * 2 / (topBase + bottomBase);
+							if(config.isCurved){
+								cy -= curveHeight / data.length;
+							}
+							topBase = bottomBase;
+						}
+						if(config.bottomPinch > 0){
+							if(!config.isInverted){
+								if(i >= data.length - config.bottomPinch)
+									cx = 0;
+							}
+							else{
+								if(!config.dynamicArea)
+									cx = cx;
+								cx = i < config.bottomPinch ? 0 : cx;
+							}
+						}
+						
+						nextLeftX = prevLeftX + cx;
+						nextRigthtX = prevRightX - cx
+						nextHeight = prevHeight + cy;
+
+						if(config.isInverted){
+							nextLeftX = prevLeftX - cx;
+							nextRigthtX = prevRightX + cx;
+						}
+						context.beginPath();
+						context.fillStyle = ["red", "green", "blue", "#ccc"][i];
+						if(config.isCurved){
+							paths.push([
+								[prevLeftX, prevHeight, "M"],
+								[width / 2, prevHeight + curveHeight - 10, prevRightX, prevHeight, "Q"],//top Bezier
+								[nextRigthtX, nextHeight, "L"],//right line
+								[nextRigthtX, nextHeight, "M"],
+								[width / 2, nextHeight + curveHeight, nextLeftX, nextHeight, "Q"],//bottom Bezier
+								[prevLeftX, prevHeight, "L"]//left line
+							]);
+							context.moveTo(prevLeftX, prevHeight);
+							context.quadraticCurveTo(width / 2, prevHeight + curveHeight - 10, prevRightX, prevHeight);
+							context.lineTo(nextRigthtX, nextHeight);
+							context.moveTo(nextRigthtX, nextHeight);
+							context.quadraticCurveTo(width / 2, nextHeight + curveHeight, nextLeftX, nextHeight);
+							context.lineTo(prevLeftX, prevHeight);
+						}
+						else{
+							paths.push([
+								[prevLeftX, prevHeight, "M"],
+								[prevRightX, prevHeight, "L"],//right
+								[nextRigthtX, nextHeight, "L"],//down
+								[nextLeftX, nextHeight, "L"],//left
+								[prevLeftX, prevHeight, "L"]//top
+							]);
+							context.moveTo(prevLeftX, prevHeight);
+							context.lineTo(prevRightX, prevHeight);
+							context.lineTo(nextRigthtX, nextHeight);
+							context.lineTo(nextLeftX, nextHeight);
+							context.lineTo(prevLeftX, prevHeight);
+						}
+						context.fill();
+						context.fillStyle = "#000";
+						console.log(nextHeight, prevHeight)
+						context.fillText(value, (nextLeftX + nextRigthtX) / 2 - 10, (prevHeight + nextHeight) / 2 + 6);
+						prevLeftX = nextLeftX;
+						prevRightX = nextRigthtX;
+						prevHeight = nextHeight;
+
+					}
+					if(config.isCurved){
+						var path = paths[0],
+							leftX = 0,
+							rightX = width,
+							centerX = width / 2;
+						if(config.isInverted){
+							leftX = bottomLeftX;
+							rightX = width - bottomLeftX;
+						}
+						context.beginPath();
+						context.moveTo(leftX, path[0][1]);
+						context.quadraticCurveTo(centerX, path[1][1] + curveHeight - 10, rightX, path[1][3]);
+						context.moveTo(rightX, 10);
+						context.quadraticCurveTo(centerX, 0, leftX, 10);
+						context.fill();
+					}
+				}
+				return funnel;
+			}
+        	document.addEventListener("DOMContentLoaded", function(){
+        		var canvas = document.getElementById("vis");
+        		funnel(canvas, canvas.width, canvas.height).data([
+							["Teal",      12000, "#008080"],
+							["Byzantium", 4000,  "#702963"],
+							["Persimmon", 2500,  "#ff634d"],
+							["Azure",     1500,  "#007fff"]
+				]).draw();
+				//var i = 0;setInterval(function(){location.hash=['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'][i++%8]}, 50);
+			}, 0);
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="450" height="350"></canvas>
+	</body>
+</html>
