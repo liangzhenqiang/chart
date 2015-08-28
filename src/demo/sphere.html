@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>sphere</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			function rescale(context, width, height){
+				var ratio = window.devicePixelRatio || 1;
+				context.canvas.width = width * ratio;
+				context.canvas.height = height * ratio;
+				context.canvas.style.width = width + "px";
+				context.canvas.style.height = height + "px";
+				context.scale(ratio, ratio);
+			}
+
+			
+        	document.addEventListener("DOMContentLoaded", function(){
+        		function sphere(x, y){
+					var speed = 0.1;
+					var rg = context.createRadialGradient(width, height, 0, width, height, radius / 2);
+					context.fillStyle = "#fff";
+					context.fillRect(0, 0, width * 2, height * 2);
+					
+					rg.addColorStop(0, "#fff");
+					rg.addColorStop(0.99, '#000');
+					rg.addColorStop(1, 'transparent');
+					context.strokeStyle = rg;
+
+					for(var i = 0; i < 20; i++){
+						Math.sin(i + y * Math.PI / 180) < 0
+						&& drawTo(width, height, radius, Math.cos(i + y * Math.PI / 180) * radius, 0);
+						Math.cos(i + x * Math.PI / 180) < 0
+						&& drawTo(width, height, Math.sin(i + x * Math.PI / 180) * radius, radius, 1);
+					}
+
+					/*setTimeout(function(){
+					sphere(x -= speed * 5, y -= speed * 5);
+					}, 50);*/
+				}
+				function drawTo(x, y, width, height, m){
+					x -= width / 2;
+					y -= height / 2;
+					context.beginPath();
+					if(m){
+						curveTo([x + width, y + height / 2, x + width / 2, y + height]);
+						curveTo([x + width, y + height / 2, x + width / 2, y]);
+					}
+					else{
+						curveTo([x, y + height / 2, x + width / 2, y]);
+						curveTo([x + width, y + height / 2, x + width / 2, y]);
+					}
+					context.stroke();
+				}
+				function curveTo(points){
+					context.moveTo(points[0], points[1]);
+					context.bezierCurveTo(
+						points[0],
+						(points[1] + points[3]) / 2,
+						(points[2] + points[0]) / 2,
+						points[3],
+						points[2],
+						points[3]
+					);
+				}
+        		var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				var width = canvas.width,
+					height = canvas.height;
+				var radius = 200;
+				var pos = {x: 0, y: 0};
+				
+				rescale(context, width, height);
+				width = width / 2;
+				height = height / 2;
+				sphere(0, 0);
+				/*var box = this.getBoundingClientRect();
+					var rw = width > height ? height / width : 1,
+						rh = height > width ? width / height : 1;
+					var x = (e.clientX - box.left - width / 2) * rw,
+						y = (e.clientY - box.top - height / 2) * rh;
+					var d = Math.atan2(y, x) + -Math.PI;
+					//console.log(d);
+					pos.x = (pos.x) + d;
+					pos.y = (pos.y) + d; 
+					sphere(pos.x, pos.y);*/
+				(function(){
+					var canvas = document.getElementById("random"),
+						context = canvas.getContext("2d");
+					var width = canvas.width,
+						height = canvas.height;
+					var zoom = Math.min(width / 2, height / 2) * 0.85;
+
+					var points = [],
+						length = 50000;
+					function normalize(){
+						for(var i = 0; i < length; ){
+							var point = {
+								x: Math.random() * 2 - 1,
+								y: Math.random() * 2 - 1,
+								z: Math.random() * 2 - 1
+							};
+							var magnitude = Math.sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
+							points[i] = point;
+							if(magnitude < 1){
+								i++;
+								point.x /= magnitude;
+								point.y /= magnitude;
+								point.z /= magnitude;
+							}
+						}
+					}
+					function twoRotations(v){
+						var step = (100000 / Math.pow(2, v) >>> 0) / 100000;
+						for(var i = 0, j = 0; i < length; i++){
+							var y = Math.sin(j);
+							var point = {
+								y: y,
+								x: Math.cos(j) * Math.sin(j * y),
+								z: Math.cos(j) * Math.cos(j * y)
+							};
+							points[i] = point;
+							j += step;
+						}
+						points.push(
+							{x: 1, y: 0, z: 0},
+							{x: 0, y: 1, z: 0},
+							{x: 0, y: 0, z: 1}
+						);
+					}
+					twoRotations(0.000152);
+					function randomSphere(){
+						canvas.width += 0;
+						var imageData = context.getImageData(0, 0, width, height);
+						
+						for(var i = 0; i < length - 3; i++){
+							var point = points[i];
+							if(point.z < 0){
+								var x = point.x * zoom + width - zoom * 10 / 8.5 - 1 | 0,
+									y = point.y * zoom + height / 2 - 1 | 0;
+								var j = (x + y * width) * 4;
+								imageData.data[j + 3] = 0xff;
+								imageData.data[j + 7] = 0xff;
+								imageData.data[j + width * 4 + 3] = 0xff;
+							}
+						}
+						context.putImageData(imageData, 0, 0);
+					}
+					randomSphere();
+
+					canvas.addEventListener("mousedown", function(e){
+						var mouse = {x: e.pageX, y: e.pageY};
+						var mousemove, mouseup;
+						e.preventDefault();
+						
+						document.addEventListener("mousemove", mousemove = function(e){
+							var dx = (e.pageX - mouse.x) / -zoom,
+								dy = (e.pageY - mouse.y) / -100;
+							var cosx = Math.cos(dx)
+								cosy = Math.cos(dy),
+								sinx = Math.sin(dx),
+								siny = Math.sin(dy);
+							for(var i = 0; i < length; i++){
+								var point = points[i];
+								var t = cosx * point.x + sinx * point.z;
+								point.z = -sinx * point.x + cosx * point.z;
+								point.x = t;//交换z和x轴
+								t = cosy * point.y + siny * point.z;
+								point.z = -siny * point.y + cosy * point.z;
+								point.y = t;//交换z和y轴
+							}
+							randomSphere();
+
+							mouse.x = e.pageX;
+							mouse.y = e.pageY;
+						}, false);
+						document.addEventListener("mouseup", mouseup = function(){
+							document.removeEventListener("mousemove", mousemove, false);
+							document.removeEventListener("mouseup", mouseup, false);
+						}, false);
+
+						
+					}, false);
+				})();
+			}, 0);
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="450" height="350"></canvas>
+		<canvas id="random" width="450" height="350" style="position:absolute;right:0;top:0;"></canvas>
+	</body>
+</html>

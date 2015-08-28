@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Cylinder 3D</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			function rescale(context, width, height){
+				var ratio = window.devicePixelRatio || 1;
+				context.canvas.width = width * ratio;
+				context.canvas.height = height * ratio;
+				context.canvas.style.width = width + "px";
+				context.canvas.style.height = height + "px";
+				context.scale(ratio, ratio);
+			}
+
+			
+        	document.addEventListener("DOMContentLoaded", function(){
+				function cylinder(a, b){
+					var r = 50;
+					var cx = 50,
+					cy = 50;
+					var x = a * 100,
+					y = b * 100;
+					if((x - cx) * (x - cx) + (y - cy) * (y - cy) < r * r){
+						return {
+						    x: x,
+						    y: y * (1 + b) / 2,
+						    r: 100 + ~~((1 - b) * 155),
+						    g: 50,
+						    b: 50
+						};
+					}
+					else{
+						return null;
+					}
+				}
+				function cylinder3d(a, b){
+					var angle = a * Math.PI * 2,
+						r = 50,
+						length = 200;
+					return {
+						x: Math.cos(angle) * r,
+						y: Math.sin(angle) * r,
+						z: b * length - length / 2,
+						r: 0,
+						g: ~~(b * 255),
+						b: 0
+					};
+				}
+
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				(function(){
+					for(var i = 0; i < 1; i += 0.01){
+						for(var j = 0; j < 1; j += 0.001){
+							var point;
+							if(point = surface(i, j)){
+							    context.fillStyle = "rgb(" + point.r + "," + point.g + "," + point.b + ")";
+							    context.fillRect(point.x, point.y, 1, 1);
+							}
+						}
+					}
+				});//();
+				var points = [];
+				var draw = function(){
+					var perspective = 350,//投影中心
+						halfWidth = canvas.width / 2,
+						halfHeight = canvas.height / 2,
+						cameraZ = -700;
+					/*for(var i = 0; i < 1; i += 0.001){
+					for(var j = 0; j < 1; j += 0.01){
+					    var point, x, y;
+					    if(point = surface3d(i, j)){
+					        x = halfWidth + point.x * perspective / (point.z - cameraZ);
+					        y = halfHeight + point.y * perspective / (point.z - cameraZ);
+					        context.fillStyle = "rgb(" + point.r + "," + point.g + "," + point.b + ")";
+					        context.fillRect(x, y, 1, 1);
+					    }
+					}
+					}*/
+					function surface(a, b){
+						var angle = a * Math.PI * 2,
+						    r = 100,
+						    length = 300;
+						var x = Math.cos(angle) * r,
+						    y = Math.sin(angle) * r,
+						    z = b * length - length / 2;
+						var rotatedX = x * Math.cos(yAxisRotation) + z * Math.sin(yAxisRotation),
+						    rotatedZ = x * -Math.sin(yAxisRotation) + z * Math.cos(yAxisRotation);
+
+						return {
+						    x: rotatedX,
+						    y: y,
+						    z: rotatedZ,
+						    r: 0,
+						    g: ~~(b * 255),
+						    b: 0
+						};
+					}
+					var zBuffer = [],
+					zIndex;
+					//for(var i = 0; i < 1; i += 0.001){
+					for(var j = 0; j < 10000; j += 1){
+					    var point, x, y;
+					    if(point = surface(Math.random(), Math.random())){
+					    	points.push(point);
+					        /*x = halfWidth + ~~((point.x * perspective) / (point.z - cameraZ));
+					        y = halfHeight + ~~((point.y * perspective) / (point.z - cameraZ));
+					        zIndex = y * canvas.width + x;
+					        if(typeof zBuffer[zIndex] === "undefined" || point.z < zBuffer[zIndex]){
+					            zBuffer[zIndex] = point.z;
+					            context.fillStyle = "rgb(" + point.r + "," + point.g + "," + point.b + ")";
+					            context.fillRect(x, y, 1, 1);
+					        }*/
+					    }
+					}
+
+					//}
+				};
+				function redraw(){
+					var perspective = 350,//投影中心
+						halfWidth = canvas.width / 2,
+						halfHeight = canvas.height / 2,
+						cameraZ = -700;
+					var zBuffer = [],
+						zIndex;
+					for(j = 0; j < points.length; j++){
+						var point = points[j];
+						var x = halfWidth + ~~((point.x * perspective) / (point.z - cameraZ));
+				        var y = halfHeight + ~~((point.y * perspective) / (point.z - cameraZ));
+				        zIndex = y * canvas.width + x;
+				        if(typeof zBuffer[zIndex] === "undefined" || point.z < zBuffer[zIndex]){
+				            zBuffer[zIndex] = point.z;
+				            context.fillStyle = "rgb(" + point.r + "," + point.g + "," + point.b + ")";
+				            context.fillRect(x, y, 1, 1);
+				        }
+					}
+				}
+				var yAxisRotation = -0.4;
+				draw();
+				redraw();
+				//drag
+				canvas.addEventListener("mousedown", function(e){
+					var mouse = {x: e.pageX, y: e.pageY};
+					var mousemove, mouseup;
+					e.preventDefault();
+					document.addEventListener("mousemove", mousemove = function(e){
+						var dx = (e.pageX - mouse.x),
+							dy = (e.pageY - mouse.y);
+						var cosx = Math.cos(dx)
+							cosy = Math.cos(dy),
+							sinx = Math.sin(dx),
+							siny = Math.sin(dy);
+						context.clearRect(0, 0, canvas.width, canvas.height);
+						//console.log(points);
+						for(var i = 0; i < points.length; i++){
+							var point = points[i];
+							var t = cosx * point.x + sinx * point.z;
+							point.z = -sinx * point.x + cosx * point.z;
+							point.x = t;//交换z和x轴
+							t = cosy * point.y + siny * point.z;
+							point.z = -siny * point.y + cosy * point.z;
+							point.y = t;//交换z和y轴
+							//yAxisRotation = Math.cos(dx) * point.x + Math.sin(dx) * point.z;
+						}
+						redraw();
+						mouse.x = e.pageX;
+						mouse.y = e.pageY;
+					}, false);
+					document.addEventListener("mouseup", mouseup = function(e){
+						document.removeEventListener("mousemove", mousemove, false);
+						document.removeEventListener("mouseup", mouseup, false);
+					}, false);
+				}, false);
+			}, false);
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="450" height="350"></canvas>
+		<canvas id="random" width="450" height="350" style="position:absolute;right:0;top:0;"></canvas>
+	</body>
+</html>

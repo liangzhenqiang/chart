@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Bee</title>
+		<style type="text/css">*{padding:0; margin:0;}</style>
+		<script type="text/javascript">
+			function rescale(context, width, height){
+				var ratio = window.devicePixelRatio || 1;
+				context.canvas.width = width * ratio;
+				context.canvas.height = height * ratio;
+				context.canvas.style.width = width + "px";
+				context.canvas.style.height = height + "px";
+				context.scale(ratio, ratio);
+			}
+
+			
+        	document.addEventListener("DOMContentLoaded", function(){
+        		(function(){
+					var canvas = document.getElementById("vis"),
+						checkbox = document.getElementById("beeCheckbox"),
+						furrinessSlider = document.getElementById("beeFurriness"),
+						beeCuddle = document.getElementById("beeCuddle"),
+						halfWidth = canvas.width / 2,
+						halfHeight = canvas.height / 2,
+						ctx = canvas.getContext("2d"),
+						mousemove,
+						mouseup,
+						sprites = [],
+						wireframe = true,
+						furriness = 0,
+						angle = .5,
+						cumulativeAngle = angle,
+						dots;
+					rescale(ctx, canvas.width, canvas.height);
+					
+				    var length = 2;
+					function createBee() {
+						var spriteContext,
+							j, i, x, y, z, e,
+							tiePattern = [17, 30, 17, 16, 16, 17, 24, 17, 16, 16],
+							xCenter, yCenter;
+
+						// Wings
+
+						dots = [
+							[0, 270, 0, 0, 0],
+							[0, -270, 0, 0, 0]
+						];
+
+						// Antennae
+
+						for (j = 0; j < 270; j += 2) {
+							i = j / 8;
+							dots.push([
+								60 + Math.sin(i) * 3,
+								50 + Math.cos(i) * 3 + i * i / 37,
+								(i & 32 ? 70 : 16) >> 0,
+								-80 - i * 2,
+								0,
+								"orange"
+							]);
+							dots.push([
+								60 + Math.sin(i) * 3,
+								-50 - Math.cos(i) * 3 - i * i / 37,
+								(i & 32 ? 70 : 16) >> 0,
+								-80 - i * 2,
+								0,
+								"orange"
+							]);
+						}
+
+						// Tie
+
+						for (i = 0; i < 900; i++) {
+							e = 8 - i % 16;
+							if (Math.abs(e) < (54 - i / 16)) {
+								dots.push([
+									50 - i * i / 20000,
+									e + e * Math.sin(i / 270),
+									tiePattern[~~(10 + i / 48 + e / 3) % 10],
+									90 + i / 8,
+									i,
+									"blue"
+								]);
+							}
+						}
+
+						// Stripes
+
+						for (i = 0; i < 5000; i++) {
+							y = i / 2500 - 1;
+							x = Math.sqrt(1 - y * y);
+							z = x * Math.cos(y * i * i);
+							x = x * Math.sin(y * i * i);
+							if ((z + .999) % .5 < .1) {
+								dots.push([
+									z * 120,
+									x * 108,
+									(133.5 + Math.cos(i * i) - y * 4) + furriness * 16 >> 0,
+									y * 96,
+									0,
+									"black"
+								]);
+							}
+						}
+
+						// Body
+
+						for (i = 0; i < 500; i++) {
+							y = i / 250 - 1;
+							x = Math.sqrt(1 - y * y);
+							z = x * Math.cos(y * i * i);
+							x = x * Math.sin(y * i * i);
+							dots.push([
+								z * 88,
+								x * 81,
+								(250 + Math.cos(i * i) * 1.5 - y * 4) + furriness * 16 >> 0,
+								y * 72,
+								0,
+								"red"
+							]);
+						}
+						
+						// Pupils
+
+						for (i = 0; i < 1000; i+=4) {
+							y = i / 500 - 1;
+							x = Math.sqrt(1 - y * y);
+							z = x * Math.cos(y * i * i);
+							x = x * Math.sin(y * i * i);
+							dots.push([
+								112,
+								x * 9 + 42,
+								(24 - y * 4) >> 0,
+								y * 8 - 32,
+								0,
+								"lime"
+							]);
+							dots.push([
+								112,
+								x * 9 - 42,
+								(24 - y * 4) >> 0,
+								y * 8 - 32,
+								0,
+								"lime"
+							]);
+						}
+
+						// Eyes
+
+						for (i = 0; i < 500; i+=2) {
+							y = i / 250 - 1;
+							x = Math.sqrt(1 - y * y);
+							z = x * Math.cos(y * i * i);
+							x = x * Math.sin(y * i * i);
+							dots.push([
+								96,
+								x * 27 + 36,
+								(110 - y) >> 0,
+								y * 24 - 32,
+								0,
+								"cyan"
+							]);
+							dots.push([
+								96,
+								x * 27 - 36,
+								(110 - y) >> 0,
+								y * 24 - 32,
+								0,
+								"cyan"
+							]);
+						}
+
+						// Sprites
+
+						for (e = 0; e < dots.length; e++) {
+							j = dots[e][2];
+							if (!sprites[j]) {
+								sprites[j] = document.createElement("canvas");
+								sprites[j].width = (j >> 3) << 1;
+								sprites[j].height = (j >> 3) << 1;
+								xCenter = sprites[j].width * .5;
+								yCenter = sprites[j].height * .5;
+								spriteContext = sprites[j].getContext("2d");
+								z = j >> 4;
+								for (i=270; i--;) {
+									spriteContext.fillStyle = "hsla(" + [
+										(j & 15) * 8 - j / 8,
+										(j & 15) * 6 + j / 8 + "%",
+										(j < 17) * 60 + (j & 15) * 7 + "%",
+										1
+									] + ")";					
+									for (x = j >> 3; z < x--;) {
+										y = Math.sin(i);
+										spriteContext.fillRect(
+											xCenter + x * Math.cos(i) * Math.cos(i * y),
+											yCenter + x * y,
+											.07,
+											1
+										);
+									}
+								}
+							}
+						}
+					}
+
+					function draw() {
+						var sortingArray = [],
+							length = dots.length,
+							dot,
+							l, i, j = 120, n, m, t,
+							offset,
+							x, y;
+						
+						ctx.fillStyle = "white";
+						ctx.fillRect(0, 0, canvas.width, canvas.height);
+						for (i = 0; i < 600; i++) {
+							sortingArray[i] = [];
+						}
+						for (i = 0; i < length; i++) {
+							dot = dots[i];
+							dot[0] = Math.cos(angle) * dot[0] - Math.sin(angle) * [dot[1], dot[1] = Math.sin(angle)*dot[0] + Math.cos(angle) * dot[1]][0];
+						}
+						for (i = 0; i < length; i++) {
+							sortingArray[(300 + dots[i][0]) >> 0].push(dots[i]);
+						}
+						x = halfWidth;
+						y = halfHeight - 10;
+						for (m = 0; m < 600; m++) {
+							l = sortingArray[m].length;
+							for (n = 0; n < l; n++) {
+								dot = sortingArray[m][n];
+								if (dot[2]) {
+									if (!wireframe) {
+										offset = dot[2] >> 3;
+										ctx.drawImage(
+											sprites[dot[2]],
+											dot[1] - offset + x - dot[4] * .0067 * Math.cos(j * .2 + dot[0] * .0625) | 0,
+											dot[3] - offset + y | 0
+										);
+									} else {
+										ctx.fillStyle = dot[5];
+										if (dot[5] === "blue") {
+											ctx.fillRect(
+												dot[1] + x - dot[4] * .0067 * Math.cos(j * .2 + dot[0] * .0625) | 0,
+												dot[3] + y | 0,
+												1,
+												1
+											);
+										} else {
+											ctx.fillRect(
+												dot[1] + x - dot[4] * .0067 * Math.cos(j * .2 + dot[0] * .0625) | 0,
+												dot[3] + y | 0,
+												2,
+												2
+											);
+										}
+									}
+								} else {
+									if (!wireframe) {
+										ctx.fillStyle = 'hsla(200, 100%, 73%, .08)';
+										for(i = 0; i < 15; i++) {
+											t = Math.cos(Math.cos(i) * j) * 270 + y;
+											ctx.beginPath();
+											ctx.moveTo(dot[0]*-.125+x+dot[1]*.5,y);
+											ctx.bezierCurveTo(-dot[0]+x+dot[1],t,dot[0]+x+dot[1],t,dot[0]*.125+x+dot[1]*.5,y);
+											ctx.fill();
+										}
+									} else {
+										ctx.strokeStyle = 'yellow';
+										for(i = 0; i < 15; i++) {
+											t = Math.cos(Math.cos(i) * j) * 270 + y;
+											ctx.beginPath();
+											ctx.moveTo(dot[0]*-.125+x+dot[1]*.5,y);
+											ctx.bezierCurveTo(-dot[0]+x+dot[1],t,dot[0]+x+dot[1],t,dot[0]*.125+x+dot[1]*.5,y);
+											ctx.stroke();
+										}
+									}
+								}
+							}
+						}
+					}
+					canvas.addEventListener("mousedown", function (event) {
+						var mouseX = event.pageX,
+							mouseY = event.pageY;
+
+						document.addEventListener("mousemove", mousemove = function (event) {
+							var dX = event.pageX - mouseX,
+								dY = event.pageY - mouseY;
+							
+							angle = dX / 100;
+							cumulativeAngle += angle;
+							draw();
+							mouseX = event.pageX;
+							mouseY = event.pageY;
+						}, false);
+						document.addEventListener("mouseup", mouseup = function (event) {
+							document.removeEventListener("mousemove", mousemove, false);
+							document.removeEventListener("mouseup", mouseup, false);
+						}, false);
+						event.preventDefault();
+					}, false);
+				    wireframe = false;
+					/*checkbox.addEventListener("change", function (event) {
+						wireframe = !wireframe;
+						furrinessSlider.style.visibility = !wireframe ? "visible" : "hidden";
+						beeCuddle.style.visibility = !wireframe ? "visible" : "hidden";
+						angle = 0;
+						draw();
+					}, false);
+					furrinessSlider.addEventListener("change", function (event) {
+						if (furrinessSlider.value > 15) {
+							furrinessSlider.value = 15;
+						}
+						if (furrinessSlider.value < -3) {
+							furrinessSlider.value = -3;
+						}
+						furriness = furrinessSlider.value;
+						createBee();
+						angle = cumulativeAngle;
+						draw();
+					}, false);*/
+					createBee();
+					draw();
+					ctx.fillStyle="black";
+					ctx.fillText("Click and drag to rotate", 200, 30);
+				})();
+			}, 0);
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="960" height="450"></canvas>
+	</body>
+</html>

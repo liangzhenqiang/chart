@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Collection</title>
+		<style type="text/css">*{padding:0; margin:0;} canvas{float:left;}</style>
+		<script type="text/javascript">
+			function rescale(context, width, height){
+				var ratio = window.devicePixelRatio || 1;
+				context.canvas.width = width * ratio;
+				context.canvas.height = height * ratio;
+				context.canvas.style.width = width + "px";
+				context.canvas.style.height = height + "px";
+				context.scale(ratio, ratio);
+			}
+
+        	document.addEventListener("DOMContentLoaded", function(){
+        		//tendril
+        		var t = 0.5;
+        		(function frame(canvas){
+        			var context = canvas.getContext("2d");
+        			var length = 30,
+        				angle = 0,
+        				radius = 60;
+        			context.clearRect(0, 0, canvas.width, canvas.height);
+
+        			var mpoint = {x: canvas.width - radius >> 1, y: canvas.height},
+        				lpoint = {
+        					x: mpoint.x + Math.cos(angle) * radius,
+        					y: mpoint.y + Math.sin(angle) * radius
+        				};
+        			function lerp(p0, p1, t){
+        				var dx = p1.x - p0.x,
+        					dy = p1.y - p0.y;
+        				return {
+        					x: p0.x + dx * t,
+        					y: p0.y + dy * t
+        				};
+        			}
+        			for(var i = 0; i < length; i++){
+        				context.beginPath();
+        				context.moveTo(mpoint.x, mpoint.y);
+        				context.lineTo(lpoint.x, lpoint.y);
+        				context.stroke();
+        				radius *= 0.9;
+        				angle -= Math.PI / 7;
+        				mpoint = lerp(mpoint, lpoint, t);
+        				lpoint.x = mpoint.x - Math.cos(angle) * radius;
+        				lpoint.y = mpoint.y + Math.sin(angle) * radius;
+        			}
+        			t += 0.001;
+        			t %= 1;
+
+        			//requestAnimationFrame(function(){ frame(canvas)});
+        		})(document.getElementById("tendril"));
+        		//petal
+        		(function frame(canvas){
+        			var context = canvas.getContext("2d");
+        			var h = canvas.height / 2,
+        				w = h / 2;
+        			var rotaion = 0,
+        				scale = 1;
+
+        			function drawLine(){
+        				context.beginPath();
+        				context.moveTo(0, 0);
+        				context.lineTo(-w / 2, -h / 2);
+        				context.lineTo(0, -h);
+        				context.lineTo(w / 2, -h / 2);
+        				context.closePath();
+        				context.fillStyle = "green";
+        				context.strokeStyle = "red";
+        				context.fill();
+        				context.stroke();
+        			}
+        			context.translate(canvas.width / 2, canvas.height / 2);
+        			for(var i = 0; i < 23; i++){
+        				context.rotate(rotaion);
+        				context.scale(scale, scale);
+        				rotaion += 137.5 * 5;
+        				scale -= 0.01;
+        				context.lineWidth = 1 / scale;
+        				for(var to = 36, td = 12, j, r = [j = 0, to, to + td, -to, -(to + td)]; j < 5; j++){
+	        				context.rotate([
+	        					0,
+	        					Math.PI / 2,
+	        					Math.PI / 3.5,
+	        					Math.PI / 2.5,
+	        					Math.PI / 3.5
+	        				][j]);
+	        				context.save();
+	        				drawLine();
+	        				context.restore();
+	        			}
+        				//context.restore();
+        			}
+        		})(document.getElementById("petal"));
+			}, false);
+		</script>
+	</head>
+	<body>
+		<canvas id="tendril" width="127" height="127"></canvas>
+		<canvas id="petal" width="127" height="127"></canvas>
+	</body>
+</html>
