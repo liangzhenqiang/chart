@@ -95,11 +95,81 @@
         				//context.restore();
         			}
         		})(document.getElementById("petal"));
+                //curve
+                (function(canvas){
+                    var context = canvas.getContext("2d");
+
+                    var PI2 = Math.PI * 2,
+                        w = canvas.width / 2,
+                        h = 10;
+                    var dtheta = 1 / w;
+                    var x0 = canvas.width / 2,
+                        y0 = canvas.height / 2,
+                        radius;
+
+                    var points = [{x: x0, y: y0}, {x: 0, y: 0}];
+
+                    function drawLine(p0, p1){
+                        context.beginPath();
+                        context.moveTo(p0.x, p0.y);
+                        context.lineTo(p1.x, p1.y);
+                        context.stroke();
+                    }
+
+                    function draw(type){
+                        switch(type){
+                            case "limacon":
+                                points[0].x += w + h;
+                            break;
+                            case "cardioid":
+                                points[0].x += w + w;
+                            break;
+                            case "threeLeaf":
+                                points[0].x += w;
+                            break;
+                            case "fourLeaf":
+                                points[0].x += w;
+                            break;
+                            case "spiral":
+                            break;
+                        }
+                        var angle = dtheta;
+                        while(angle < PI2){
+                            switch(type){
+                                case "limacon":
+                                    radius = h + w * Math.cos(angle);
+                                break;
+                                case "cardioid":
+                                    radius = w * (1 + Math.cos(angle));
+                                break;
+                                case "threeLeaf":
+                                    radius = w * Math.cos(angle * 3);
+                                break;
+                                case "fourLeaf":
+                                    radius = w * Math.cos(angle * 2);
+                                break;
+                                case "spiral":
+                                    radius = w / 4 * angle;
+                                break;
+                            }
+                            points[1].x = x0 + radius * Math.cos(angle);
+                            points[1].y = y0 + radius * Math.sin(angle);
+
+                            drawLine(points[0], points[1]);
+
+                            points[0].x = points[1].x;
+                            points[0].y = points[1].y;
+                            angle += dtheta;
+                        }
+                    }
+                    draw("fourLeaf");
+                })(document.getElementById("curve"));
 			}, false);
 		</script>
 	</head>
 	<body>
 		<canvas id="tendril" width="127" height="127"></canvas>
 		<canvas id="petal" width="127" height="127"></canvas>
+        <canvas id="curve" width="127" height="127"></canvas>
 	</body>
 </html>

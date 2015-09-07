@@ -1,0 +1,67 @@
+<!doctype>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>easing</title>
+		<script>
+			document.addEventListener("DOMContentLoaded", function(){
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				var width = canvas.width,
+					height = canvas.height;
+
+				var easing = {
+					"linear": function(complete){
+						return complete;
+					},
+					"ease-in": function(complete, strength){
+						return Math.pow(complete, strength * 2);
+					},
+					"ease-out": function(complete, strength){
+						return 1 - Math.pow(1 - complete, strength * 2);
+					},
+					"ease-in-out": function(complete){
+						return complete - Math.sin(complete * Math.PI * 2) / (2 * Math.PI);
+					},
+					"elastic": function(complete, passes){
+						passes = passes || 3;
+						return complete + (1 - Math.cos(complete * Math.PI * passes)) * (1 - complete);
+					},
+					"bounce": function(complete, bounces){
+						var elastic = easing["elastic"];
+						complete = elastic(complete, bounces);
+						return complete <= 1 ? complete : 2 - complete;
+					}
+				};
+				
+				var animation = (function(){
+					var startTime = +new Date();
+					return function(duration, callback){
+						var elapsedTime = (+new Date()) - startTime,
+							complete = elapsedTime / duration;
+						return elapsedTime * (callback.call(this, complete, 1) / complete);//0 is NaN
+					}
+				})();
+
+				function draw(x){
+					context.beginPath();
+					context.arc(x, 80, 10, 0, Math.PI * 2, false);
+					context.fill();
+				}
+				(function frame(){
+					var raf;
+					context.clearRect(0, 0, width, height);
+					var x = animation(1000, easing["bounce"]);
+					//console.log(x);
+					raf = requestAnimationFrame(frame);
+					if(x >= width - 5)//未校正
+						cancelAnimationFrame(raf);
+					draw(Math.min(x, width - 5));
+				})();
+			}, false);
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="960" height="450"></canvas>
+	</body>
+</html>

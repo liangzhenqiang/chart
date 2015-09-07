@@ -1,0 +1,109 @@
+<!doctype>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>钟摆运动</title>
+		<script>
+			document.addEventListener("DOMContentLoaded", function(){
+				var canvas = document.getElementById("vis"),
+					context = canvas.getContext("2d");
+				var width = canvas.width,
+					height = canvas.height;
+
+				function pendulum(){
+					function weight(wx, wy){
+						var wradius = 25;
+						context.save();
+						context.beginPath();
+						context.arc(wx, wy, wradius, 0, Math.PI * 2, false)
+						context.clip();
+						context.fill();
+						context.restore();
+					}
+					function pivot(x, y){
+						var radius = 10;
+						context.save();
+						context.beginPath();
+						context.arc(x + radius, y, radius, 0, Math.PI * 2, false);
+						context.stroke();
+						context.fillStyle = "red";
+						context.fill();
+						context.restore();
+					}
+					function rod(x, y, wx, wy, angle){
+						var radius = 10,
+							wradius = 25;
+						context.beginPath();
+						context.moveTo(
+							x + radius + radius * Math.sin(angle),
+							y + radius * Math.cos(angle)
+						);
+						context.lineTo(
+							wx - wradius * Math.sin(angle),
+							wy - wradius * Math.cos(angle)
+						);
+						context.stroke();
+					}
+					function animate(time){
+						elapsedTime = (time - startTime) / 1000;
+						//startTime = time;
+						angle = (Math.PI / 5) * Math.cos(Math.sqrt(gravityForce / rodLength) * elapsedTime);//钟摆运动的角度计算公式
+						wx = x + Math.sin(angle) * 300;
+						wy = y + Math.cos(angle) * 300;
+
+						context.clearRect(0, 0, width, height);
+
+						weight(wx, wy);
+						pivot(x, y);
+						rod(x, y, wx, wy, angle);
+
+
+						requestAnimationFrame(function(){
+							animate(+new Date());
+							//startTime = time;
+						});
+					}
+					var gravityForce = 32,
+						rodLength = 0.8;
+					var elapsedTime = 0;
+
+					var x = width / 2,
+						y = 50;
+
+					var angle = (Math.PI / 5) * Math.cos(Math.sqrt(gravityForce / rodLength) * elapsedTime);//钟摆运动的角度计算公式
+					var wx = x + Math.sin(angle) * 300,
+						wy = y + Math.cos(angle) * 300;
+					
+					weight(wx, wy);
+					pivot(x, y);
+					rod(x, y, wx, wy, angle);
+
+					var startTime;
+					animate(startTime = +new Date());
+				}
+				pendulum();
+				canvas.addEventListener("mousedown", function(e){
+					var mouse = {x: e.pageX, y: e.pageY};
+
+					var mousemove, mouseup;
+					e.preventDefault();
+					
+					document.addEventListener("mousemove", mousemove = function(e){
+						//var dx = (e.pageX - mouse.x) / -zoom,
+						//	dy = (e.pageY - mouse.y) / -100;
+						mouse.x = e.pageX;
+						mouse.y = e.pageY;
+					}, false);
+					document.addEventListener("mouseup", mouseup = function(e){
+						document.removeEventListener("mousemove", mousemove, false);
+						document.removeEventListener("mouseup", mouseup, false);
+					}, false);
+					
+				}, false);
+			}, false);
+		</script>
+	</head>
+	<body>
+		<canvas id="vis" width="960" height="450"></canvas>
+	</body>
+</html>
